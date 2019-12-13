@@ -10,26 +10,32 @@ router.use(bodyParser.urlencoded({ extended: false }));
 router.use(bodyParser.json());
 const moment = require("moment-timezone");
 
-
+// 抓取紅利計算率(最新一筆)
 router.get("/getbonusstandard", (req, res) => {
-  sql = "SELECT * FROM `bonus` WHERE DATEDIFF(`bonus`.bonus_duration,NOW()) > 0 limit 1";
+  sql =
+    "SELECT * FROM `bonus` WHERE DATEDIFF(`bonus`.bonus_duration,NOW()) > 0 limit 1";
   db.queryAsync(sql).then(results => {
+    // 轉換格式
     const formatDate = "YYYY-MM-DD";
-    results[0].bonus_duration = moment(results[0].bonus_duration).tz('Asia/Taipei').format(formatDate);
-      res.json(results[0]);
+    results[0].bonus_duration = moment(results[0].bonus_duration)
+      .tz("Asia/Taipei")
+      .format(formatDate);
+    res.json(results[0]);
   });
-})
+});
 
+// 抓取該號會員的紅利剩餘
 router.get("/getbonus/:id", (req, res) => {
   const memberBonus = req.params.id;
-  sql = "SELECT `member`.member_bonus FROM `member` WHERE `member`.`member_sid` = " + memberBonus;
+  sql =
+    "SELECT `member`.member_bonus FROM `member` WHERE `member`.`member_sid` = " +
+    memberBonus;
   db.queryAsync(sql).then(results => {
     res.json(results[0].member_bonus);
   });
-})
+});
 
-
-
+// 抓取該會員還可使用優惠卷
 router.get("/getcoupon/:id", (req, res) => {
   const memberId = req.params.id;
   sql =
@@ -38,28 +44,29 @@ router.get("/getcoupon/:id", (req, res) => {
   db.queryAsync(sql).then(results => {
     res.json(results);
   });
-})
+});
 
 router.post("/submitcart", (req, res) => {
   const courseCart = JSON.parse(req.body.courseCart);
+  // 課程購物車
   const ingreCart = JSON.parse(req.body.ingreCart);
+  // 食材購物車
   const user = req.body.user;
+  // 使用者
   const coupon = req.body.coupon || 0;
   const totalPrice = req.body.totalPrice;
   const bonus = req.body.bonus;
   const bonusUsed = req.body.bonusUsed || 0;
-  const outPut = [];
   let order_sid;
-  let courseCartInsert = [];
 
-
-  if (bonus) db.query(`UPDATE member SET member_bonus = ${bonus} WHERE member_sid = ${user}`);
-  db.queryAsync("INSERT INTO `order` (member_sid, coupon_sid, order_total_price,member_used_bonus) VALUES (?, ?, ? ,?)", [
-    user,
-    coupon,
-    totalPrice,
-    bonusUsed
-  ]).then((results, fields) => {
+  if (bonus)
+    db.query(
+      `UPDATE member SET member_bonus = ${bonus} WHERE member_sid = ${user}`
+    );
+  db.queryAsync(
+    "INSERT INTO `order` (member_sid, coupon_sid, order_total_price,member_used_bonus) VALUES (?, ?, ? ,?)",
+    [user, coupon, totalPrice, bonusUsed]
+  ).then((results, fields) => {
     db.queryAsync(
       "SELECT `order`.`order_sid`,`order`.`order_create_time` FROM `order` ORDER BY `order`.`order_create_time` DESC LIMIT 1"
     )
@@ -67,7 +74,8 @@ router.post("/submitcart", (req, res) => {
         order_sid = results[0].order_sid;
         if (coupon) {
           db.query(
-            `UPDATE member_coupon SET member_coupon_used = 1 WHERE member_sid = ${user} AND coupon_sid = ${coupon}`)
+            `UPDATE member_coupon SET member_coupon_used = 1 WHERE member_sid = ${user} AND coupon_sid = ${coupon}`
+          );
         }
         if (courseCart.length !== 0 && ingreCart.length !== 0) {
           for (i = 0; i < courseCart.length; i++) {
@@ -119,13 +127,14 @@ router.post("/submitcart", (req, res) => {
       })
       .then((results, fields) => {
         const formatDate = "YYYY-MM-DD HH:mm:ss";
-        results.course_order_choose = moment(results.course_order_choose).tz('Asia/Taipei').format(formatDate);
+        results.course_order_choose = moment(results.course_order_choose)
+          .tz("Asia/Taipei")
+          .format(formatDate);
         res.json(results);
       });
   });
 });
 
-
-router.post("/checkCourseAttendee", (req, res) => { });
+router.post("/checkCourseAttendee", (req, res) => {});
 
 module.exports = router;

@@ -11,10 +11,12 @@ var smtpTransport = require("nodemailer-smtp-transport");
 
 // import OrderDetail from "../domain/memberOrder";
 
+// 測試用
 router.get("/", (req, res) => {
   res.send("Member-OrderPage");
 });
 
+// 獲取使用者所有課程訂單簡介
 router.get("/course/:id", (req, res) => {
   const memberId = req.params.id;
   let sql =
@@ -22,15 +24,18 @@ router.get("/course/:id", (req, res) => {
     memberId;
   db.queryAsync(sql).then(results => {
     const formatDate = "YYYY-MM-DD HH:mm:ss";
+    // 拿到多筆結果後利用迴圈將其中的日期格式改變
     results.forEach(function(v) {
       v.course_order_choose = moment(v.course_order_choose)
         .tz("Asia/Taipei")
         .format(formatDate);
     });
+    // 傳回成json檔
     res.json(results);
   });
 });
 
+// 獲取使用者所有訂單
 router.get("/orderSid/:id", (req, res) => {
   const memberId = req.params.id;
   sql = "SELECT * FROM `order` WHERE `member_sid` = " + memberId;
@@ -39,6 +44,7 @@ router.get("/orderSid/:id", (req, res) => {
   });
 });
 
+// 獲取使用者所有食材訂單簡介
 router.get("/ingre/:id", (req, res) => {
   const memberId = req.params.id;
   sql =
@@ -49,6 +55,7 @@ router.get("/ingre/:id", (req, res) => {
   });
 });
 
+// 獲取使用者所有課程訂單簡介
 router.get("/subject/:id", (req, res) => {
   const memberId = req.params.id;
   sql =
@@ -65,14 +72,17 @@ router.get("/subject/:id", (req, res) => {
   });
 });
 
+// 類別訂單詳細
 class OrderDetail {
   constructor(orderType, user, item) {
     this.orderType = orderType;
     this.user = user;
     this.item = item;
   }
+  // 類別中的函式，使用建構式時變數會放到sql中回傳
   orderDetailSQL() {
     let sql = "";
+    // 依照type來回傳不同的sql對應不同類的詳細
     switch (this.orderType) {
       case 1: {
         sql =
@@ -120,6 +130,7 @@ router.post("/orderDetail", (req, res, next) => {
     req.body.user,
     req.body.item
   );
+  // 建構物件
   db.query(orderDetail.orderDetailSQL(), (error, rows) => {
     console.log(rows);
     if (error) {
@@ -131,7 +142,6 @@ router.post("/orderDetail", (req, res, next) => {
     } else {
       const formatDate = "YYYY-MM-DD HH:mm:ss";
       if (rows[0].course_order_choose) {
-        console.log("Course");
         rows[0].course_order_choose = moment(rows[0].course_order_choose)
           .tz("Asia/Taipei")
           .format(formatDate);
@@ -139,7 +149,6 @@ router.post("/orderDetail", (req, res, next) => {
           .tz("Asia/Taipei")
           .format(formatDate);
       } else if (rows[0].subject_date) {
-        console.log("Teacher");
         rows[0].subject_date = moment(rows[0].subject_date)
           .tz("Asia/Taipei")
           .format(formatDate);
@@ -147,7 +156,6 @@ router.post("/orderDetail", (req, res, next) => {
           .tz("Asia/Taipei")
           .format(formatDate);
       } else {
-        console.log("Ingredient");
         rows[0].order_create_time = moment(rows[0].order_create_time)
           .tz("Asia/Taipei")
           .format(formatDate);
@@ -205,13 +213,13 @@ router.post("/mailToReport", (req, res) => {
         <h4>目前已在處理中，請靜待回覆</h4>
         `
     };
-    transporter.sendMail(mailOptions, function(error, info){
-      if(error){
+    transporter.sendMail(mailOptions, function(error, info) {
+      if (error) {
         return console.log(error);
-      }else{
-        return   console.log('訊息發送: ' + info.response);
+      } else {
+        return console.log("訊息發送: " + info.response);
       }
-  });
+    });
     return res.json({
       status: "202",
       message: "問題已送至客服,請至信箱確認"
